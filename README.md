@@ -2,6 +2,8 @@
 
 A pure HTML/CSS/JavaScript register — no build step, no backend process.
 
+**Live demo:** https://agriculture-subsity-distribution-re.vercel.app/
+
 ## Run it
 
 Just open `index.html` directly in a browser — double-click it. The dataset loads from `data.js` as a plain script, not a `fetch` request, so there's no local-server requirement and no CORS restriction to work around.
