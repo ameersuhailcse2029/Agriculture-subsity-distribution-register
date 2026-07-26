@@ -60,3 +60,5 @@ New entries and edits made in the browser are kept in `localStorage`, layered on
 
 - Duplicate-issue prevention is enforced by `record_id` uniqueness plus the `issued_qty ≤ entitlement_qty` rule; it does not yet stop a second *record* being created for the same farmer + input type in the same season (only the API/DB layer of a real backend could enforce that with a proper constraint).
 - Delete/void of a record is not implemented — only create and edit.
+## Project Presentation
+The presentation is included as `Project_Presentation.pptx`.
