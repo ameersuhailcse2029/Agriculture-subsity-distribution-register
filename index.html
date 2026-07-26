@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Subsidy Distribution Register</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="spine" aria-hidden="true"></div>
+
+<div class="page">
+
+  <header class="masthead">
+    <div class="masthead__title">
+      <p class="eyebrow">Department of Agriculture &middot; Season 2026</p>
+      <h1>Input Subsidy Distribution Register</h1>
+      <p class="masthead__sub">Every seed and fertiliser issue, checked against entitlement at the counter — not after.</p>
+    </div>
+    <div class="masthead__actions">
+      <button id="reset-sample-btn" class="btn btn--ghost btn--small" title="Discard local edits and reload the sample register">Reset to sample data</button>
+      <button id="new-entry-btn" class="btn btn--primary">+ Record an issue</button>
+    </div>
+  </header>
+
+  <section class="summary" aria-label="Register totals">
+    <div class="summary__card summary__card--accent">
+      <span class="summary__label">Entitlement issued</span>
+      <span class="summary__value mono" id="summary-issued">—</span>
+      <span class="summary__unit">of <span id="summary-entitlement">—</span> kg allocated</span>
+    </div>
+    <div class="summary__card">
+      <span class="summary__label">Balance remaining</span>
+      <span class="summary__value mono" id="summary-balance">—</span>
+      <span class="summary__unit">kg across register</span>
+    </div>
+    <div class="summary__card">
+      <span class="summary__label">Records on file</span>
+      <span class="summary__value mono" id="summary-records">—</span>
+      <span class="summary__unit">entitlement lines</span>
+    </div>
+    <div class="summary__card summary__card--warn">
+      <span class="summary__label">Not yet collected</span>
+      <span class="summary__value mono" id="summary-not-collected">—</span>
+      <span class="summary__unit">entitlements untouched</span>
+    </div>
+  </section>
+
+  <section class="toolbar" aria-label="Search and filter">
+    <div class="toolbar__search">
+      <label for="search-input" class="sr-only">Search by farmer, farmer ID, record ID or village</label>
+      <input id="search-input" type="text" placeholder="Search farmer, farmer ID, record ID or village…" autocomplete="off" />
+    </div>
+    <div class="toolbar__filters">
+      <select id="village-filter" aria-label="Filter by village">
+        <option value="">All villages</option>
+      </select>
+      <select id="input-filter" aria-label="Filter by input type">
+        <option value="">All input types</option>
+      </select>
+      <select id="status-filter" aria-label="Filter by status">
+        <option value="">All statuses</option>
+        <option value="fully_issued">Fully issued</option>
+        <option value="partially_issued">Partial</option>
+        <option value="not_collected">Not collected</option>
+        <option value="unrecorded">Unrecorded</option>
+      </select>
+      <button id="clear-filters" class="btn btn--ghost btn--small">Clear</button>
+    </div>
+    <p id="result-count" class="toolbar__count" role="status">— records shown</p>
+  </section>
+
+  <section class="register" aria-label="Distribution records">
+
+    <div id="loading-state" class="state-panel" hidden>
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Reading the register…</p>
+    </div>
+
+    <div id="empty-state" class="state-panel" hidden>
+      <p class="state-panel__title">No entitlement lines match this search.</p>
+      <p>Try a different name, village, or clear the filters to see the full register.</p>
+    </div>
+
+    <div id="error-state" class="state-panel state-panel--error" hidden>
+      <p class="state-panel__title">The register could not be read.</p>
+      <p id="error-message"></p>
+      <button id="retry-btn" class="btn btn--primary btn--small">Try again</button>
+    </div>
+
+    <div id="table-wrap" class="table-wrap" hidden>
+      <table>
+        <thead>
+          <tr>
+            <th>Record</th>
+            <th>Farmer</th>
+            <th>Village</th>
+            <th>Input</th>
+            <th>Entitlement</th>
+            <th>Issued</th>
+            <th>Balance</th>
+            <th>Status</th>
+            <th>Days waiting</th>
+            <th><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+  </section>
+
+  <footer class="page-footer">
+    <p>Balance = entitlement − issued, recalculated on every read. Days waiting counts from the issue date for any entitlement not yet fully issued, against a fixed register date of 26 Jul 2026.</p>
+  </footer>
+
+</div>
+
+<!-- ============================= MODAL ============================= -->
+<div id="modal-backdrop" class="modal-backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal__card">
+      <h2 id="modal-title">Record a new issue</h2>
+      <form id="record-form" novalidate>
+
+        <div class="field-row" id="f-record-id-row">
+          <label for="f-record-id">Record ID</label>
+          <input id="f-record-id" name="record_id" placeholder="REG-2026-0041" />
+          <span class="field-error"></span>
+        </div>
+
+        <div class="field-row">
+          <label for="f-farmer-id">Farmer ID</label>
+          <input id="f-farmer-id" name="farmer_id" placeholder="FARM-1041" />
+          <span class="field-error"></span>
+        </div>
+
+        <div class="field-row">
+          <label for="f-farmer-name">Farmer name</label>
+          <input id="f-farmer-name" name="farmer_name" placeholder="Full name" />
+          <span class="field-error"></span>
+        </div>
+
+        <div class="field-row">
+          <label for="f-village">Village</label>
+          <input id="f-village" name="village" placeholder="Village name" />
+          <span class="field-error"></span>
+        </div>
+
+        <div class="field-row">
+          <label for="f-input-type">Input type</label>
+          <select id="f-input-type" name="input_type">
+            <option value="">Choose an input…</option>
+          </select>
+          <span class="field-error"></span>
+        </div>
+
+        <div class="field-row field-row--split">
+          <div>
+            <label for="f-entitlement">Entitlement (kg)</label>
+            <input id="f-entitlement" name="entitlement_qty" type="number" min="0" step="1" />
+            <span class="field-error"></span>
+          </div>
+          <div>
+            <label for="f-issued">Issued today (kg)</label>
+            <input id="f-issued" name="issued_qty" type="number" min="0" step="1" />
+            <span class="field-error"></span>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label for="f-date">Issue date</label>
+          <input id="f-date" name="issue_date" type="date" />
+          <span class="field-error"></span>
+        </div>
+
+        <p id="form-error" class="form-error" hidden></p>
+
+        <div class="modal__actions">
+          <button type="button" id="cancel-form-btn" class="btn btn--ghost">Cancel</button>
+          <button type="submit" class="btn btn--primary">Save entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script src="render.js"></script>
+</body>
+</html>
